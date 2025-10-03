@@ -1,4 +1,5 @@
 #! /bin/bash
+# File has been modified by YEXT #
 
 echo "Entrypoint starting."
 
@@ -57,9 +58,12 @@ for ONEREGISTRYIN in docker.caching.proxy.internal registry-1.docker.io auth.doc
     echo "${ONEREGISTRY} 127.0.0.1:443;" >> /etc/nginx/docker.intercept.map
 done
 
-# Clean the list and generate certificates.
-export ALLDOMAINS=${ALLDOMAINS:1} # remove the first comma and export
-/create_ca_cert.sh # This uses ALLDOMAINS to generate the certificates.
+USE_PRIVATE_CA=${USE_PRIVATE_CA:-false}
+if [[ "${USE_PRIVATE_CA}" == "false" ]]; then
+    # Clean the list and generate certificates.
+    export ALLDOMAINS=${ALLDOMAINS:1} # remove the first comma and export
+    /create_ca_cert.sh # This uses ALLDOMAINS to generate the certificates.
+fi
 
 # Target host interception. Empty by default. Used to intercept outgoing requests
 # from the proxy to the registries.
