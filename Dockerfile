@@ -11,6 +11,8 @@ ARG BASE_IMAGE="docker.io/rpardini/nginx-proxy-connect-stable-alpine:nginx-1.26.
 ARG BASE_IMAGE_SUFFIX=""
 FROM ${BASE_IMAGE}${BASE_IMAGE_SUFFIX}
 
+LABEL version="0.6.7"
+
 # Link image to original repository on GitHub
 LABEL org.opencontainers.image.source=https://github.com/yext/docker-registry-proxy
 
