@@ -55,7 +55,7 @@ for ONEREGISTRYIN in docker.caching.proxy.internal registry-1.docker.io auth.doc
     ONEREGISTRY=$(echo ${ONEREGISTRYIN} | xargs) # Remove whitespace
     echo "Adding certificate for registry: $ONEREGISTRY"
     ALLDOMAINS="${ALLDOMAINS},DNS:${ONEREGISTRY}"
-    echo "${ONEREGISTRY} 127.0.0.1:443;" >> /etc/nginx/docker.intercept.map
+    echo "${ONEREGISTRY} 127.0.0.1:8443;" >> /etc/nginx/docker.intercept.map
 done
 
 USE_PRIVATE_CA=${USE_PRIVATE_CA:-false}
@@ -101,22 +101,30 @@ if [ "$AUTH_REGISTRIES" ]; then
     done
 fi
 
-# create default config for the caching layer to listen on 443.
-echo "        listen 443 ssl default_server;" > /etc/nginx/caching.layer.listen
+# create default config for the caching layer to listen on 8443.
+echo "        listen 8443 ssl default_server;" > /etc/nginx/caching.layer.listen
 echo "error_log  /var/log/nginx/error.log warn;" > /etc/nginx/error.log.debug.warn
 
 # Set Docker Registry cache size, by default, 32 GB ('32g')
 CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-32g}
 
+# Customizable cache directory via env vars
+CACHE_DIR=${CACHE_DIR:-/docker_mirror_cache}
+
 # The cache directory. This can get huge. Better to use a Docker volume pointing here!
 # Set to 32gb which should be enough
-echo "proxy_cache_path /docker_mirror_cache levels=1:2 max_size=$CACHE_MAX_SIZE inactive=60d keys_zone=cache:10m use_temp_path=off;" > /etc/nginx/conf.d/cache_max_size.conf
+echo "proxy_cache_path ${CACHE_DIR} levels=1:2 max_size=$CACHE_MAX_SIZE inactive=60d keys_zone=cache:10m use_temp_path=off;" > /etc/nginx/conf.d/cache_max_size.conf
 
 # Set Docker Registry cache valid time, by default, 60 day ('60d')
 CACHE_VALID_TIME=${CACHE_VALID_TIME:-60d}
 
 # Set default cache valid time for 200 and 205 response.
 sed -i "/# Cache all 200, 206 for 60 days default./a\        proxy_cache_valid 200 206 ${CACHE_VALID_TIME};" /etc/nginx/nginx.conf
+
+CERTS_DIR=${CERTS_DIR:-/certs}
+# Set SSL certificate paths in nginx.conf
+sed -i "s|ssl_certificate .*;|ssl_certificate ${CERTS_DIR}/fullchain.pem;|g" /etc/nginx/nginx.conf
+sed -i "s|ssl_certificate_key .*;|ssl_certificate_key ${CERTS_DIR}/web.key;|g" /etc/nginx/nginx.conf
 
 # Manifest caching configuration. We generate config based on the environment vars.
 echo -n "" >/etc/nginx/nginx.manifest.caching.config.conf
@@ -193,16 +201,16 @@ if [[ "a${DEBUG}" == "atrue" ]]; then
     exit 3
   fi
 
-  # in debug mode, change caching layer to listen on 444, so that mitmproxy can sit in the middle.
-  echo "        listen 444 ssl default_server;" > /etc/nginx/caching.layer.listen
+  # in debug mode, change caching layer to listen on 8444, so that mitmproxy can sit in the middle.
+  echo "        listen 8444 ssl default_server;" > /etc/nginx/caching.layer.listen
 
   echo "Starting in DEBUG MODE (mitmproxy)."  >&2
   echo "Run mitmproxy with reverse pointing to the same certs..."
   mitmweb --no-web-open-browser --set web_host=0.0.0.0 --set confdir=~/.mitmproxy-incoming \
           --set termlog_verbosity=error --set stream_large_bodies=128k --web-port 8081 \
           --set keep_host_header=true --set ssl_insecure=true \
-          --mode reverse:https://127.0.0.1:444 --listen-host 0.0.0.0 \
-          --listen-port 443 --certs /certs/fullchain_with_key.pem  &
+          --mode reverse:https://127.0.0.1:8444 --listen-host 0.0.0.0 \
+          --listen-port 8443 --certs /certs/fullchain_with_key.pem  &
   echo "Access mitmweb via http://127.0.0.1:8081/ "
 fi
 
@@ -213,7 +221,7 @@ if [[ "a${DEBUG_HUB}" == "atrue" ]]; then
   fi
 
   # in debug hub mode, we remap targetHost to point to mitmproxy below
-  echo "\"registry-1.docker.io\" \"127.0.0.1:445\";" > /etc/nginx/docker.targetHost.map
+  echo "\"registry-1.docker.io\" \"127.0.0.1:8445\";" > /etc/nginx/docker.targetHost.map
 
   echo "Debugging outgoing DockerHub connections via mitmproxy on 8082."  >&2
   # this one has keep_host_header=false so we don't need to modify nginx config
@@ -221,7 +229,7 @@ if [[ "a${DEBUG_HUB}" == "atrue" ]]; then
           --set termlog_verbosity=error --set stream_large_bodies=128k --web-port 8082 \
           --set keep_host_header=false --set ssl_insecure=true \
           --mode reverse:https://registry-1.docker.io --listen-host 0.0.0.0 \
-          --listen-port 445 --certs /certs/fullchain_with_key.pem  &
+          --listen-port 8445 --certs /certs/fullchain_with_key.pem  &
 
   echo "Warning, DockerHub outgoing debugging disables upstream SSL verification for all upstreams."  >&2
   VERIFY_SSL=false
@@ -306,4 +314,5 @@ echo "Testing nginx config..."
 ${NGINX_BIN} -t
 
 echo "Starting nginx! Have a nice day."
-${NGINX_BIN} -g "daemon off;"
+
+exec ${NGINX_BIN} -g "daemon off;"
