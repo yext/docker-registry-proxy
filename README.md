@@ -8,6 +8,22 @@
 A caching proxy for Docker; allows centralised management of (multiple) registries and their authentication; caches images from *any* registry.
 Caches the potentially huge blob/layer requests (for bandwidth/time savings), and optionally caches manifest requests ("pulls") to avoid rate-limiting.
 
+### `0.6.8`: Update dockerfile to run as nginx user instead of root
+
+docker-registry-proxy originally contained an nginx user however it did not set the container to run as nginx user. Updated the Dockerfile to set user as nginx and updated permissions + ports in nginx config to support this functionality.
+
+Also added some env vars:
+- `CACHE_DIR`: Allow setting of different cache dir from the original `/docker_mirror_cache`
+- `CERTS_DIR`: Allow setting of different certs dir from the original `/certs` (This is relevant if you are setting a different CA + fullchain.pem file.)
+
+### `0.6.7`: Add env var to allow setting cache valid time
+
+Added an environment variable `CACHE_VALID_TIME` to allow for setting different cache valid times.
+
+### `0.6.6`: Add env var to disable create_ca_cert.sh script
+
+For internal use-cases I've added the ability to set the environment variable `USE_PRIVATE_CA` which allows us to disable the create_ca_cert.sh script from running and creating openssl generated self-signed certs.
+
 ### `0.6.5`: Updated late February 2025 for the "2nd Docker Apocalypse"
 
 Docker, Inc has announced a [2nd apocalypse](https://www.docker.com/blog/revisiting-docker-hub-policies-prioritizing-developer-experience/) for 1st of March'25 (it has [already been pushed back to April](https://www.theregister.com/2025/02/22/docker_hub_pull_limits/)).
@@ -107,7 +123,10 @@ for this to work it requires inserting a root CA certificate into system trusted
   - PROXY_CONNECT_CONNECT_TIMEOUT : see [proxy_connect_connect_timeout](https://github.com/chobits/ngx_http_proxy_connect_module#proxy_connect_connect_timeout)
   - PROXY_CONNECT_SEND_TIMEOUT : see [proxy_connect_send_timeout](https://github.com/chobits/ngx_http_proxy_connect_module#proxy_connect_send_timeout)
 - Env `DISABLE_IPV6`: If set to `true`, prevents nginx from getting IPv6 addresses from the resolver, without needing a [custom resolver config](#custom_nginx_resolvers_configuration)
-
+- Env `CACHE_VALID_TIME`: Defaults to 60 days, can be used to set cache_valid_time in nginx config
+- Env `USE_PRIVATE_CA`: If you have an internal CA you would like to use instead of the self-signed certificates generated from `create_ca_cert.sh`
+- Env `CACHE_DIR`: Defaults to `/docker_mirror_cache` but you can use this to set a different cache directory
+- Env `CERTS_DIR`: Defaults to `/certs` but you can use this to set a different directory for the fullchain.pem and web.key files.
 
 ### Simple (no auth, all cache)
 ```bash
