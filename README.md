@@ -8,6 +8,10 @@
 A caching proxy for Docker; allows centralised management of (multiple) registries and their authentication; caches images from *any* registry.
 Caches the potentially huge blob/layer requests (for bandwidth/time savings), and optionally caches manifest requests ("pulls") to avoid rate-limiting.
 
+### `0.6.9`: Update inactive value for proxy_cache_path to use env var
+
+inactive now sources its value from the `CACHE_VALID_TIME` environment variable
+
 ### `0.6.8`: Update dockerfile to run as nginx user instead of root
 
 docker-registry-proxy originally contained an nginx user however it did not set the container to run as nginx user. Updated the Dockerfile to set user as nginx and updated permissions + ports in nginx config to support this functionality.

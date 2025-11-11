@@ -154,7 +154,7 @@ ENV SEND_TIMEOUT="60s" \
     PROXY_CONNECT_CONNECT_TIMEOUT="60s" \
     PROXY_CONNECT_SEND_TIMEOUT="60s"
 
-LABEL version="0.6.8" \
+LABEL version="0.6.9" \
 # Link image to original repository on GitHub
     org.opencontainers.image.source=https://github.com/yext/docker-registry-proxy
 
