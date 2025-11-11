@@ -111,12 +111,12 @@ CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-32g}
 # Customizable cache directory via env vars
 CACHE_DIR=${CACHE_DIR:-/docker_mirror_cache}
 
-# The cache directory. This can get huge. Better to use a Docker volume pointing here!
-# Set to 32gb which should be enough
-echo "proxy_cache_path ${CACHE_DIR} levels=1:2 max_size=$CACHE_MAX_SIZE inactive=60d keys_zone=cache:10m use_temp_path=off;" > /etc/nginx/conf.d/cache_max_size.conf
-
 # Set Docker Registry cache valid time, by default, 60 day ('60d')
 CACHE_VALID_TIME=${CACHE_VALID_TIME:-60d}
+
+# The cache directory. This can get huge. Better to use a Docker volume pointing here!
+# Set to 32gb which should be enough
+echo "proxy_cache_path ${CACHE_DIR} levels=1:2 max_size=${CACHE_MAX_SIZE} inactive=${CACHE_VALID_TIME} keys_zone=cache:10m use_temp_path=off;" > /etc/nginx/conf.d/cache_max_size.conf
 
 # Set default cache valid time for 200 and 205 response.
 sed -i "/# Cache all 200, 206 for 60 days default./a\        proxy_cache_valid 200 206 ${CACHE_VALID_TIME};" /etc/nginx/nginx.conf
