@@ -8,6 +8,10 @@
 A caching proxy for Docker; allows centralised management of (multiple) registries and their authentication; caches images from *any* registry.
 Caches the potentially huge blob/layer requests (for bandwidth/time savings), and optionally caches manifest requests ("pulls") to avoid rate-limiting.
 
+### `0.6.11`: Add extra /healthy endpoint that redirects to /healthz endpoint
+
+You can now hit the caching layer health endpoint at `:8443/healthy`. This will redirect to `/healthz`
+
 ### `0.6.10`: Add health endpoint for https caching layer on port 8443
 
 You can now hit the caching layer health endpoint at `:8443/healthz`. This will return the health and ssl info.
